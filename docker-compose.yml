@@ -1,0 +1,52 @@
+version: '3.7'
+
+services:
+    web:
+        build:
+            context: .
+        ports:
+            - "8000:8000"
+        volumes:
+            - .:/quantapi
+        command: sh -c "python manage.py runserver 0.0.0.0:8000"
+        environment:
+            - DEBUG=1
+        links:
+            - mongodb
+        depends_on:
+            - migration
+
+    mongodb:
+        image: mongo:latest
+#        restart: unless-stopped
+        volumes:
+            - ./mongo/data/db:/data/db
+        environment:
+#            MONGO_INITDB_ROOT_USERNAME: root
+#            MONGO_INITDB_ROOT_PASSWORD: mongoadmin
+            MONGO_INITDB_DATABASE: financials
+        ports:
+            - "27017:27017"
+
+
+    migration:
+        build: .
+        image: quantapi_web
+        command: sh -c "python manage.py migrate"
+        volumes:
+            - .:/quantapi
+        links:
+            - mongodb
+        depends_on:
+            - make_migrations
+
+    make_migrations:
+        build: .
+        image: quantapi_web
+        command: sh -c "python manage.py makemigrations"
+        volumes:
+            - .:/quantapi
+        links:
+            - mongodb
+        depends_on:
+            - mongodb
